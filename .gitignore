@@ -1,0 +1,4 @@
+.idea/
+/venv
+/what_to_wear_outside_bot/.env
+/database/.env.db.config
