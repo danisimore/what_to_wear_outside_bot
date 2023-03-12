@@ -26,9 +26,9 @@ def create_table():
             cursor.execute(
                 '''CREATE TABLE users(
                 id bigint PRIMARY KEY,
-                name varchar(150) NOT NULL,
-                latitude numeric NOT NULL,
-                longitude numeric NOT NULL
+                name varchar(150),
+                latitude numeric,
+                longitude numeric
                 );'''
             )
             print('[INFO] Table created successfully')

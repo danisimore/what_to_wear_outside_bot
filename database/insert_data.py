@@ -1,11 +1,7 @@
-import os
 import psycopg2
-from dotenv import load_dotenv
-
-load_dotenv('.env.db.config')
 
 
-def test_name_for_func(host, user, password, db_name, identifier, name, latitude, longitude):
+def insert_data(host, user, password, db_name, identifier, name, latitude, longitude):
 
     try:
         # connect to exists database
@@ -24,7 +20,7 @@ def test_name_for_func(host, user, password, db_name, identifier, name, latitude
                 ({identifier}, {str(name)}, {latitude}, {longitude})
                 ;'''
             )
-            print('[INFO] Table created successfully')
+            print('[INFO] Data inserted successfully')
 
         if connection:
             connection.close()

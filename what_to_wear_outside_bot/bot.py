@@ -5,20 +5,23 @@ from aiogram import Dispatcher, Bot, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 
-from get_started_keyboard import get_started_keyboard
-from get_location_keyboard import get_location_keyboard
+from keyboards.get_main_keyboard import get_main_keyboard
+from keyboards.get_started_keyboard import get_started_keyboard
+from keyboards.get_location_keyboard import get_location_keyboard
+
 from states import ProfileCreateStatesGroup
 
-from database.insert_data import test_name_for_func
-
+from database.insert_data import insert_data
+from database.services import User
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '''                                            FOR CONNECTION TO DATABASE                                            '''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 load_dotenv('../database/.env.db.config')
 
 host = os.environ.get('HOST')
-user = os.environ.get('DB_USER')
+db_user = os.environ.get('DB_USER')
 password = os.environ.get('PASSWORD')
 db_name = os.environ.get('DB_NAME')
 
@@ -36,15 +39,30 @@ dp = Dispatcher(bot, storage=storage)
 
 @dp.message_handler(commands=['start'])
 async def cmd_start(message: types.Message) -> None:
-    await message.answer(
-        text='Привет, прежде чем мы продолжим, давай познакомимся!'
+    user = User(
+        host=host,
+        user=db_user,
+        password=password,
+        db_name=db_name,
+        identifier=message.from_user.id
     )
-    await message.answer(
-        text='Я создан, чтобы помочь тебе надеть одежду, '
-             'в которой тебе будет комфортно. Я принимаю свои решения на'
-             ' основе текущей погоды на улице.',
-        reply_markup=get_started_keyboard()
-    )
+
+    if not user.check_user():
+        user.save_id()
+        await message.answer(
+            text='Привет, прежде чем мы продолжим, давай познакомимся!'
+        )
+        await message.answer(
+            text='Я создан, чтобы помочь тебе надеть одежду, '
+                 'в которой тебе будет комфортно. Я принимаю свои решения на'
+                 ' основе текущей погоды на улице.',
+            reply_markup=get_started_keyboard()
+        )
+    else:
+        await message.answer(
+            text='Кажется мы уже знакомы! Ты можешь получить мой совет или сменить свое местоположение.',
+            reply_markup=get_main_keyboard()
+        )
 
 
 @dp.message_handler()
@@ -64,7 +82,7 @@ async def save_name(message: types.Message, state: FSMContext) -> None:
 
         await message.answer(
             text='Теперь отправь мне свои координаты. '
-                 'Это нужно мне для того, чтобы знать какая у тебя сейчас погода!'
+                 'Это нужно мне для того, чтобы знать какая у тебя сейчас погода! '
                  'Отправлять координаты нужно с телефона!',
             reply_markup=get_location_keyboard()
         )
@@ -78,9 +96,9 @@ async def save_location(message: types.Message, state: FSMContext) -> None:
         data['latitude'] = message.location.latitude
         data['longitude'] = message.location.longitude
 
-        test_name_for_func(
+        insert_data(
             host=host,
-            user=user,
+            user=db_user,
             password=password,
             db_name=db_name,
             identifier=data['id'],
@@ -89,11 +107,13 @@ async def save_location(message: types.Message, state: FSMContext) -> None:
             longitude=data['longitude']
         )
 
-        print(data)
-
-    await message.answer('Пока это все, что я умею')
+    await message.answer(
+        text='Отлично! Теперь можно приступать к работе',
+        reply_markup=get_main_keyboard()
+    )
 
     await state.finish()
+
 
 if __name__ == '__main__':
     executor.start_polling(dp)
